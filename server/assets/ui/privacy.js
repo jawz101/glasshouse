@@ -438,9 +438,6 @@ async function setAdBlockMode(mode) {
   for (const m of ['off', 'ads', 'full']) { const b = q('ab-' + m); if (b) b.disabled = false; }
 }
 
-// Kept so the old control still works from anywhere that calls it.
-function togglePrivacy() { showTab(activeTab === 'privacy' ? 'control' : 'privacy'); }
-
 async function privAction(action) {
   const question = action === 'resetAdId' ? t('pv.adid.reset.confirm', 'Really reset the advertising ID?')
     : t('pv.cookies.clear.confirm', 'Really clear ad cookies?');

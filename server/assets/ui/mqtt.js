@@ -3,8 +3,6 @@
 // ---- MQTT & Home Assistant settings ----
 let cfgPasswordSet = false;
 
-function toggleMqtt() { showTab(activeTab === 'mqtt' ? 'control' : 'mqtt'); }
-
 function cfgToggle(id) {
   const b = q(id);
   b.classList.toggle('on');
