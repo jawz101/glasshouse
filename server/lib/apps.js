@@ -550,14 +550,6 @@ function restartSamNow(cb) {
   }
 }
 
-function isMounted(filePath, cb) {
-  execFn('/bin/mount', [], { timeout: 4000 }, function (err, stdout) {
-    if (err) return cb(false);
-    var pat = ' ' + filePath + ' ';
-    cb(String(stdout || '').indexOf(pat) !== -1);
-  });
-}
-
 function umountFile(filePath, cb) {
   execFn('/bin/umount', ['-l', filePath], { timeout: 4000 }, function () {
     if (cb) cb();
