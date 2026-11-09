@@ -1462,6 +1462,7 @@ function handleRequest(req, res) {
     if (!file) return send(res, 404, JSON.stringify({ ok: false, error: 'not found' }));
     var ext = path.extname(file).toLowerCase();
     var mime = MIME[ext] || 'application/octet-stream';
+    var compressible = ext === '.html' || ext === '.css' || ext === '.js' || ext === '.json' || ext === '.svg';
     // The strings and their translations change with each release as the pages
     // do, so a day-old copy beside a new page would show text the page no
     // longer has, or miss text it now does.
@@ -1469,27 +1470,35 @@ function handleRequest(req, res) {
     // newer one calls what an older copy lacks.
     var fresh = ext === '.html' || ext === '.json' || /(^|\/)(i18n|home-kit)\.js$/.test(file);
     var cacheHdr = fresh ? 'no-cache' : 'public, max-age=86400';
-    var respondWithBuf = function (buf) {
-      var etag = '"' + (displayVersionStr || '1') + '-' + buf.length.toString(16) + '"';
+    var respondWithEntry = function (entry) {
+      var etag = '"' + (displayVersionStr || '1') + '-' + entry.raw.length.toString(16) + '"';
+      var assetHeaders = { 'ETag': etag, 'Cache-Control': cacheHdr };
+      if (entry.gz) assetHeaders['Vary'] = 'Accept-Encoding';
       if (req.headers && req.headers['if-none-match'] === etag) {
-        res.writeHead(304, { 'ETag': etag, 'Cache-Control': cacheHdr });
+        res.writeHead(304, assetHeaders);
         return res.end();
       }
-      res.writeHead(200, {
-        'Content-Type': mime,
-        'Content-Length': buf.length,
-        'Cache-Control': cacheHdr,
-        'ETag': etag
-      });
-      res.end(buf);
+      var useGz = !!entry.gz && !!(req.headers && (req.headers['accept-encoding'] || '').indexOf('gzip') !== -1);
+      var outBuf = useGz ? entry.gz : entry.raw;
+      assetHeaders['Content-Type'] = mime;
+      assetHeaders['Content-Length'] = outBuf.length;
+      if (useGz) assetHeaders['Content-Encoding'] = 'gzip';
+      res.writeHead(200, assetHeaders);
+      res.end(outBuf);
     };
     if (ASSET_CACHE[file]) {
-      return respondWithBuf(ASSET_CACHE[file]);
+      return respondWithEntry(ASSET_CACHE[file]);
     }
     return fs.readFile(file, function (e, buf) {
       if (e) return send(res, 500, JSON.stringify({ ok: false, error: 'read failed' }));
-      ASSET_CACHE[file] = buf;
-      respondWithBuf(buf);
+      var gz = null;
+      // On this thread rather than zlib's worker pool: see loadUI.
+      if (compressible && typeof zlib.gzipSync === 'function') {
+        try { gz = zlib.gzipSync(buf); } catch (ze) {}
+      }
+      var entry = { raw: buf, gz: gz };
+      ASSET_CACHE[file] = entry;
+      respondWithEntry(entry);
     });
   }
 

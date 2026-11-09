@@ -53,7 +53,9 @@ Older Linux kernels and Node 0.12 can encounter process deadlocks or child leaks
 once at start (about 170 KB). It goes out with `Cache-Control: no-cache` and an
 ETag hashed from the page, so a browser keeps it and asks each time, and an
 unchanged page comes back as a 304 with no body. The ETag comes from the content
-rather than the version: a deploy of uncommitted changes keeps the version.
+rather than the version: a deploy of uncommitted changes keeps the version. Text
+assets under `/assets/` (such as the translation files in `assets/i18n/`, the TV
+app pages and SVGs) are gzipped and cached in memory when first read.
 
 ### What it costs the TV
 
